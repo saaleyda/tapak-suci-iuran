@@ -190,8 +190,8 @@ if (!empty($siswa_raw)) {
     <nav class="navbar navbar-dark bg-maroon shadow-sm border-bottom border-warning py-2">
         <div class="container-fluid px-4">
             <a class="navbar-brand d-flex align-items-center gap-2" href="#">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/3/30/Logo_Tapak_Suci_Putera_Muhammadiyah.png" alt="Logo" width="35" height="35">
-                <span class="fw-bold text-gold" style="font-size: 15px;">KAS UTAMA TAPAK SUCI GALUNGGUNG</span>
+                <img src="assets/Logo_Tapak_Suci_Galunggung.jpeg" alt="Logo Tapak Suci Galunggung" width="35" height="35">
+                <span class="fw-bold text-gold" style="font-size: 15px;">INFAQ TAPAK SUCI GALUNGGUNG</span>
             </a>
             <span class="badge bg-warning text-dark fw-bold px-3 py-2">Buku: 2026</span>
         </div>
