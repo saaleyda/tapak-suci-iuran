@@ -1,10 +1,19 @@
 <?php
+// 1. Inisialisasi Sesi di Baris Paling Atas (Cukup Satu Kali)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Proteksi Halaman Admin
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') { 
+    header("Location: login.php"); 
+    exit(); 
+}
+
+// Hubungkan ke API Google Sheets
 require_once __DIR__ . '/google-sheets-client.php';
 
+// Ambil Flash Message jika ada
 $message = '';
 if (isset($_SESSION['flash_message'])) {
     $message = $_SESSION['flash_message'];
@@ -13,12 +22,14 @@ if (isset($_SESSION['flash_message'])) {
 
 $list_bulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-// Menentukan Bulan Default Saat Ini
+// Menentukan Bulan Default Saat Ini secara otomatis
 $bulan_angka = (int)date('m'); 
 $bulan_default = $list_bulan[$bulan_angka - 1]; 
 
 // FITUR FILTER BULAN
 $bulan_pilihan = isset($_GET['filter_bulan']) ? htmlspecialchars(trim($_GET['filter_bulan'])) : $bulan_default;
+// Mengamankan tahun secara dinamis
+$tahun_aktif = date('Y'); 
 
 // ==========================================
 // 2. PROSES POST: CRUD MASTER SISWA & IURAN
@@ -78,12 +89,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $no_siswa = htmlspecialchars(trim($_POST['no_siswa_bayar']));
         $bulan = htmlspecialchars(trim($_POST['bulan_iuran']));
         $nominal = htmlspecialchars(trim($_POST['nominal_bayar']));
-        $tahun = '2026';
         
+        // REVISI: Menggunakan format penulisan tanggal internasional untuk database/sheets
         $timestamp = date('Y-m-d H:i:s'); 
 
         if (!empty($no_siswa) && !empty($bulan) && !empty($nominal)) {
-            if (sheets_append('Transaksi_luran', [$no_siswa, $bulan, $tahun, $nominal, $timestamp], 'append')) {
+            if (sheets_append('Transaksi_luran', [$no_siswa, $bulan, $tahun_aktif, $nominal, $timestamp], 'append')) {
                 $_SESSION['flash_message'] = "<div class='alert alert-success alert-dismissible fade show shadow-sm fs-6' role='alert'>
                                                 <i class='bi bi-cash-coin me-2'></i> Setoran Bulan <b>$bulan</b> sebesar Rp " . number_format($nominal, 0, ',', '.') . " sukses disimpan.
                                                 <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
@@ -102,7 +113,6 @@ $siswa_raw = sheets_read('Master_siswa');
 $transaksi_raw = sheets_read('Transaksi_luran');
 
 $pembayaran_map = [];
-
 $total_kas_bulan_pilihan = 0;
 $bulan_40k = 0; $bulan_50k = 0; $bulan_60k = 0;
 
@@ -115,7 +125,7 @@ if (!empty($transaksi_raw)) {
     foreach ($transaksi_raw as $index => $tx) {
         if ($index === 0 || empty($tx[0])) continue;
         
-        if (trim($tx[2]) == '2026') {
+        if (trim($tx[2]) == $tahun_aktif) {
             $no_siw = trim($tx[0]);
             $bln = ucfirst(strtolower(trim($tx[1]))); 
             $nominal_clean = isset($tx[3]) ? (int)preg_replace('/[^0-9]/', '', $tx[3]) : 0;
@@ -156,12 +166,11 @@ if (!empty($siswa_raw)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manajemen Iuran Tapak Suci Galunggung</title>
+    <title>E-System SPP Tapak Suci Galunggung</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        /* Standarisasi Ukuran Font Utama Ke 14px-16px */
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; font-size: 14px; color: #334155; }
         :root { --ts-maroon: #800000; --ts-gold: #FFD700; }
         .bg-maroon { background-color: var(--ts-maroon) !important; }
@@ -170,7 +179,6 @@ if (!empty($siswa_raw)) {
         .btn-gold { background-color: var(--ts-gold); color: #1e293b; font-weight: 600; border: 1px solid var(--ts-gold); font-size: 14px; }
         .btn-gold:hover { background-color: #e6b800; color: #000; }
         
-        /* KARTU ANGGOTA KONTRAS TINGGI (MAROON & GOLD) */
         .card-stat-kontras { 
             border: 2px solid var(--ts-gold); 
             background: linear-gradient(135deg, var(--ts-maroon) 0%, #5a0000 100%); 
@@ -207,12 +215,17 @@ if (!empty($siswa_raw)) {
 <body>
 
     <nav class="navbar navbar-dark bg-maroon shadow-sm border-bottom border-warning py-3">
-        <div class="container-fluid px-4">
+        <div class="container-fluid px-4 d-flex justify-content-between align-items-center">
             <a class="navbar-brand d-flex align-items-center gap-2" href="index.php">
                 <img src="assets/Logo_Tapak_Suci_Galunggung.jpeg" alt="Logo" width="40" height="40" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/3/30/Logo_Tapak_Suci_Putera_Muhammadiyah.png';">
-                <span class="fw-bold text-gold" style="font-size: 16px; letter-spacing: 0.5px;">INFAQ TAPAK SUCI GALUNGGUNG</span>
+                <span class="fw-bold text-gold" style="font-size: 16px; letter-spacing: 0.5px;">SPP TAPAK SUCI GALUNGGUNG</span>
             </a>
-            <span class="badge bg-warning text-dark fw-bold px-3 py-2 fs-6">Buku: 2026</span>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-warning text-dark fw-bold px-3 py-2 fs-6">Buku: <?= $tahun_aktif; ?></span>
+                <a href="logout.php" class="btn btn-outline-light btn-sm fw-medium px-3 border-secondary" onclick="return confirm('Apakah Anda yakin ingin keluar dari sistem Admin?');">
+                    <i class="bi bi-box-arrow-right me-1"></i> Logout
+                </a>
+            </div>
         </div>
     </nav>
 
@@ -225,7 +238,7 @@ if (!empty($siswa_raw)) {
                 <div class="col-lg-5">
                     <div class="card p-3 shadow-sm border-0 bg-white h-100">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted fw-bold" style="font-size: 12px; letter-spacing: 0.5px;">REKAPITULASI KAS BULANAN</span>
+                            <span class="text-muted fw-bold" style="font-size: 12px; letter-spacing: 0.5px;">REKAPITULASI SPP BULANAN</span>
                             
                             <form method="GET" action="" id="formFilterBulan">
                                 <select name="filter_bulan" class="form-select form-select-sm fw-bold border-success text-success py-1 px-2" style="font-size: 13px; width: 140px; height: 32px;" onchange="document.getElementById('formFilterBulan').submit();">
@@ -257,11 +270,11 @@ if (!empty($siswa_raw)) {
                 <div class="col-lg-5">
                     <div class="card p-3 shadow-sm border-0 bg-white h-100" style="border-left: 4px solid #475569;">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted fw-bold" style="font-size: 12px; letter-spacing: 0.5px;">TOTAL KAS KESELURUHAN (AKUMULASI)</span>
-                            <span class="badge bg-secondary bg-opacity-10 text-secondary font-monospace" style="font-size: 11px;">Jan - Des 2026</span>
+                            <span class="text-muted fw-bold" style="font-size: 12px; letter-spacing: 0.5px;">TOTAL SPP KESELURUHAN (AKUMULASI)</span>
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary font-monospace" style="font-size: 11px;">Jan - Des <?= $tahun_aktif; ?></span>
                         </div>
-                        <h2 class="fw-bold text-dark mb-3" style="font-size: 26px;">Rp <?= number_format($total_kas_semua, 0, ',', '.'); ?></h2>
-                        
+                        <h2 class="fw-bold text-dark mb-3" style="font-size: 26px;">Rp <?= number_format($total_spp_semua, 0, ',', '.'); ?></h2>
+
                         <div class="row text-center g-2">
                             <div class="col-4">
                                 <div class="p-2 rounded lunas-40k"><small class="d-block text-muted fw-semibold" style="font-size: 10px;">Total 40K</small><span class="fw-bold" style="font-size: 13px;">Rp <?= number_format($semua_40k, 0, ',', '.'); ?></span></div>
@@ -278,7 +291,7 @@ if (!empty($siswa_raw)) {
 
                 <div class="col-lg-2 d-flex flex-column justify-content-between gap-2">
                     <div class="card card-stat-kontras shadow-sm p-2 text-center rounded-3">
-                        <span class="text-gold d-block fw-bold small" style="font-size: 11px; letter-spacing: 0.5px;">TOTAL ANGGOTA</span>
+                        <span class="text-gold d-block fw-bold small" style="font-size: 11px; letter-spacing: 0.5px;">TOTAL SISWA</span>
                         <h4 class="fw-bold m-0 text-white mt-1" style="font-size: 22px;"><?= count($siswa_data); ?> <span style="font-size: 13px;" class="text-light opacity-75">Siswa</span></h4>
                     </div>
                     <div class="d-flex flex-column gap-1">
@@ -286,7 +299,7 @@ if (!empty($siswa_raw)) {
                             <i class="bi bi-clock-history me-1"></i> Log Transaksi
                         </a>
                         <button class="btn btn-danger bg-maroon py-1.5 shadow-sm fw-semibold btn-sm w-100" style="font-size: 13px;" data-bs-toggle="modal" data-bs-target="#modalBayarCepat">
-                            <i class="bi bi-cash-coin me-1"></i> Input Iuran
+                            <i class="bi bi-cash-coin me-1"></i> Input Transaksi
                         </button>
                         <button class="btn btn-gold py-1.5 shadow-sm fw-semibold btn-sm w-100" style="font-size: 13px;" data-bs-toggle="modal" data-bs-target="#modalTambahSiswa">
                             <i class="bi bi-person-plus-fill me-1"></i> + Siswa Baru
@@ -374,7 +387,7 @@ if (!empty($siswa_raw)) {
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content fs-6">
                 <div class="modal-header bg-maroon text-white">
-                    <h5 class="modal-title fw-bold">Tambah Murid Baru</h5>
+                    <h5 class="modal-title fw-bold">Tambah Siswa Baru</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="" method="POST">
@@ -390,7 +403,7 @@ if (!empty($siswa_raw)) {
                         </div>
                     </div>
                     <div class="modal-footer bg-light">
-                        <button type="submit" class="btn btn-danger bg-maroon w-100 py-2 fs-6">Daftarkan Anggota</button>
+                        <button type="submit" class="btn btn-danger bg-maroon w-100 py-2 fs-6">Daftarkan Siswa</button>
                     </div>
                 </form>
             </div>
@@ -401,7 +414,7 @@ if (!empty($siswa_raw)) {
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content fs-6">
                 <div class="modal-header bg-dark text-white">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-warning"></i> Edit Data Anggota</h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square text-warning"></i> Edit Data Siswa</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="" method="POST">
@@ -434,7 +447,7 @@ if (!empty($siswa_raw)) {
                     <input type="hidden" name="no_siswa" id="deleteNoSiswa">
                     <div class="modal-body text-center pt-4 pb-3">
                         <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 40px;"></i>
-                        <h5 class="fw-bold mt-2">Hapus Anggota Ini?</h5>
+                        <h5 class="fw-bold mt-2">Hapus Siswa Ini?</h5>
                         <p class="text-muted px-3 fs-6" id="deleteTextLabel"></p>
                     </div>
                     <div class="d-flex border-top">
@@ -450,7 +463,7 @@ if (!empty($siswa_raw)) {
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content fs-6">
                 <div class="modal-header bg-maroon text-white">
-                    <h5 class="modal-title fw-bold">Input Setoran Iuran</h5>
+                    <h5 class="modal-title fw-bold">Input Setoran SPP</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="" method="POST">
