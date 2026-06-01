@@ -3,19 +3,15 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. PROTEKSI AKSES: Harus login (bisa sebagai Admin atau Wali)
 if (!isset($_SESSION['role'])) {
     header("Location: login.php");
     exit();
 }
 
-// Ambil ID siswa dari URL parameter
 $no_siswa = isset($_GET['no_siswa']) ? trim($_GET['no_siswa']) : '';
 
-// 2. KUNCI PRIVASI WALI MURID: Wali TIDAK BOLEH membuka ID siswa lain!
 if ($_SESSION['role'] === 'wali') {
     if ($no_siswa !== $_SESSION['wali_siswa_id']) {
-        // Jika nakal mencoba mengganti URL ID, paksa logout dan kembali ke login
         header("Location: logout.php");
         exit();
     }
@@ -26,7 +22,6 @@ require_once __DIR__ . '/google-sheets-client.php';
 $tahun_aktif = date('Y');
 $list_bulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-// Ambil data Master Siswa
 $siswa_raw = sheets_read('Master_siswa');
 $nama_siswa = '';
 $siswa_ditemukan = false;
@@ -42,13 +37,11 @@ if (!empty($siswa_raw)) {
     }
 }
 
-// Jika ID tidak valid di database, kembalikan sesuai role
 if (!$siswa_ditemukan) {
     header("Location: " . ($_SESSION['role'] === 'admin' ? 'index.php' : 'logout.php'));
     exit();
 }
 
-// Ambil histori transaksi iuran khusus siswa ini
 $transaksi_raw = sheets_read('Transaksi_luran');
 $payment_history = [];
 $total_dibayar = 0;
@@ -91,16 +84,12 @@ if (!empty($transaksi_raw)) {
     </style>
 </head>
 <body>
-
-    <!-- NAVBAR RESPONSIF -->
     <nav class="navbar navbar-dark navbar-custom py-3 shadow-sm">
         <div class="container d-flex justify-content-between align-items-center">
             <span class="navbar-brand mb-0 h1 fw-bold text-uppercase d-flex align-items-center" style="font-size: 15px;">
                 <img src="assets/Logo_Tapak_Suci_Galunggung.jpeg" alt="Logo" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
                 KARTU SPP DIGITAL SISWA
             </span>
-            
-            <!-- NAVIGASI KEMBALI DINAMIS (Wali diarahkan ke logout.php agar session bersih) -->
             <?php if ($_SESSION['role'] === 'admin'): ?>
                 <a href="index.php" class="btn btn-warning btn-sm fw-semibold rounded-pill px-3"><i class="bi bi-arrow-left me-1"></i> Dashboard Admin</a>
             <?php else: ?>
@@ -110,8 +99,6 @@ if (!empty($transaksi_raw)) {
     </nav>
 
     <div class="container my-4" style="max-width: 700px;">
-        
-        <!-- BIODATA KARTU SISWA -->
         <div class="card card-spp bg-white p-4 mb-4 border-start border-4 border-warning">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
@@ -126,7 +113,6 @@ if (!empty($transaksi_raw)) {
             </div>
         </div>
 
-        <!-- TABEL RINCIAN BULANAN -->
         <div class="card card-spp bg-white shadow-sm border">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 text-center">
@@ -160,9 +146,7 @@ if (!empty($transaksi_raw)) {
                 </table>
             </div>
         </div>
-        
         <p class="text-center text-muted small mt-4">Sistem Pencatatan Otomatis Real-time Terintegrasi Core Cloud Sheets</p>
     </div>
-
 </body>
 </html>

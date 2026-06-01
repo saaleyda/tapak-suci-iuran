@@ -3,7 +3,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Jika sudah login sebagai admin, langsung lempar ke index.php
 if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
     header("Location: index.php");
     exit();
@@ -13,15 +12,15 @@ require_once __DIR__ . '/google-sheets-client.php';
 
 $error_message = '';
 
-// 1. PROSES LOGIN ADMIN (VIA EASTER EGG)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'admin_login') {
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
 
     if ($username === 'adminglg' && $password === 'galunggung2026') {
         $_SESSION['role'] = 'admin';
-        // Hapus session wali jika ada
-        unset($_SESSION['wali_siswa_id']);
+        if (isset($_SESSION['wali_siswa_id'])) {
+            unset($_SESSION['wali_siswa_id']);
+        }
         header("Location: index.php");
         exit();
     } else {
@@ -29,7 +28,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// 2. PROSES AKSES KARTU SPP WALI MURID (BARU)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'wali_access') {
     $_SESSION['role'] = 'wali';
     $_SESSION['wali_siswa_id'] = trim($_POST['siswa_id']);
@@ -37,7 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit();
 }
 
-// 3. PROSES PENCARIAN WALI MURID
 $search_results = [];
 $search_keyword = '';
 $has_searched = false;
@@ -87,16 +84,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     </style>
 </head>
 <body>
-
     <div class="main-card p-4">
-        
         <div class="text-center mb-4 border-bottom pb-3">
             <img src="assets/Logo_Tapak_Suci_Galunggung.jpeg" id="eggLogo" alt="Logo Tapak Suci" class="rounded-circle logo-clickable mb-2 shadow">
             <h4 class="fw-bold text-dark m-0">SPP TAPAK SUCI</h4>
             <p class="text-muted small mb-0">Pusat Informasi & Cek Iuran Siswa - Cab. Galunggung</p>
         </div>
 
-        <!-- PORTAL WALI MURID -->
         <div id="waliPortal">
             <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-search me-1"></i> Cek Status Pembayaran Siswa</h6>
             <form method="POST" action="">
@@ -113,7 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <?php if (!empty($search_results)): ?>
                         <div class="list-group shadow-sm">
                             <?php foreach ($search_results as $siswa): ?>
-                                <!-- Form POST untuk mengunci Session ID Siswa sebelum diarahkan ke detail -->
                                 <form method="POST" action="" class="m-0">
                                     <input type="hidden" name="action" value="wali_access">
                                     <input type="hidden" name="siswa_id" value="<?= $siswa['id']; ?>">
@@ -137,7 +130,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <?php endif; ?>
         </div>
 
-        <!-- LOGIN RAHASIA ADMIN (EASTER EGG) -->
         <div id="adminLoginForm">
             <div class="text-center mb-3">
                 <span class="badge bg-danger-subtle text-danger rounded-pill px-3 py-1 fw-bold mb-2"><i class="bi bi-shield-lock-fill me-1"></i> Mode Administrator</span>
@@ -166,7 +158,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 </div>
             </form>
         </div>
-
     </div>
 
     <script>
