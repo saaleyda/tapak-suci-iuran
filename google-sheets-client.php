@@ -43,16 +43,12 @@ function sheets_append($range, $data, $action = 'append', $keyId = null) {
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
     curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-    curl_setopt($ch,  CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
     
     $response = curl_exec($ch);
-    if (curl_errno($ch)) {
-        curl_close($ch);
-        return false;
-    }
     curl_close($ch);
     
-    $resData = json_decode($response, true);
-    return isset($resData['success']) && $resData['success'] === true;
+    return json_decode($response, true);
 }
+?>
