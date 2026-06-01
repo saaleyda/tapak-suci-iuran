@@ -1,65 +1,67 @@
 <?php
-// 1. Inisialisasi Sesi Secara Aman
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Jika sudah login, langsung lempar ke halaman yang sesuai
-if (isset($_SESSION['role'])) {
-    if ($_SESSION['role'] === 'admin') {
-        header("Location: index.php");
-        exit();
-    } else if ($_SESSION['role'] === 'wali') {
-        header("Location: detail.php?no_siswa=" . $_SESSION['siswa_id']);
-        exit();
-    }
+// Jika sudah login sebagai admin, langsung lempar ke index.php
+if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+    header("Location: index.php");
+    exit();
 }
 
-// 2. Hubungkan ke API Google Sheets
 require_once __DIR__ . '/google-sheets-client.php';
 
 $error_message = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $role_input = isset($_POST['role']) ? trim($_POST['role']) : 'wali';
-    
-    if ($role_input === 'admin') {
-        $username = isset($_POST['username']) ? trim($_POST['username']) : '';
-        $password = isset($_POST['password']) ? trim($_POST['password']) : '';
-        
-        // PENTING: Silakan sesuaikan Username & Password Admin kamu di sini
-        if ($username === 'adminglg' && $password === 'galunggung2026') {
-            $_SESSION['role'] = 'admin';
-            header("Location: index.php");
-            exit();
-        } else {
-            $error_message = "Username atau password Administrator salah!";
-        }
-    } else if ($role_input === 'wali') {
-        $siswa_id = isset($_POST['siswa_id']) ? trim($_POST['siswa_id']) : '';
-        
-        if (!empty($siswa_id)) {
-            $siswa_data = sheets_read('Master_siswa');
-            $ditemukan = false;
-            
-            if (!empty($siswa_data)) {
-                foreach ($siswa_data as $index => $row) {
-                    if ($index === 0) continue; // Lewati baris judul tabel
-                    if (trim($row[0]) === $siswa_id) {
-                        $ditemukan = true;
-                        $_SESSION['role'] = 'wali';
-                        $_SESSION['siswa_id'] = $siswa_id;
-                        header("Location: detail.php?no_siswa=" . $siswa_id);
-                        exit();
-                    }
+// 1. PROSES LOGIN ADMIN (VIA EASTER EGG)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'admin_login') {
+    $username = trim($_POST['username']);
+    $password = trim($_POST['password']);
+
+    if ($username === 'adminglg' && $password === 'galunggung2026') {
+        $_SESSION['role'] = 'admin';
+        // Hapus session wali jika ada
+        unset($_SESSION['wali_siswa_id']);
+        header("Location: index.php");
+        exit();
+    } else {
+        $error_message = 'Akses ditolak. Username atau Password salah!';
+    }
+}
+
+// 2. PROSES AKSES KARTU SPP WALI MURID (BARU)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'wali_access') {
+    $_SESSION['role'] = 'wali';
+    $_SESSION['wali_siswa_id'] = trim($_POST['siswa_id']);
+    header("Location: detail.php?no_siswa=" . urlencode($_POST['siswa_id']));
+    exit();
+}
+
+// 3. PROSES PENCARIAN WALI MURID
+$search_results = [];
+$search_keyword = '';
+$has_searched = false;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'wali_search') {
+    $search_keyword = htmlspecialchars(trim($_POST['keyword']));
+    $has_searched = true;
+
+    if (!empty($search_keyword)) {
+        $siswa_raw = sheets_read('Master_siswa');
+        if (!empty($siswa_raw)) {
+            foreach ($siswa_raw as $index => $row) {
+                if ($index === 0 || empty($row[0])) continue;
+                
+                $id_siswa = trim($row[0]);
+                $nama_siswa = isset($row[1]) ? trim($row[1]) : '-';
+
+                if (stripos($id_siswa, $search_keyword) !== false || stripos($nama_siswa, $search_keyword) !== false) {
+                    $search_results[] = [
+                        'id' => $id_siswa,
+                        'nama' => $nama_siswa
+                    ];
                 }
             }
-            
-            if (!$ditemukan) {
-                $error_message = "Nomor ID Siswa tidak terdaftar di sistem pusat!";
-            }
-        } else {
-            $error_message = "Silakan masukkan nomor urut/ID siswa dengan benar!";
         }
     }
 }
@@ -69,101 +71,126 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - E-System SPP Tapak Suci</title>
+    <title>E-System SPP Tapak Suci Galunggung</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="icon" type="image/jpeg" href="assets/Logo_Tapak_Suci_Galunggung.jpeg">
     <style>
-        body { background: linear-gradient(135deg, #8B0000 0%, #B22222 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .login-card { border: none; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); background: #ffffff; overflow: hidden; max-width: 450px; width: 100%; }
-        .brand-header { background: #FFD700; padding: 30px; text-align: center; border-bottom: 5px solid #DAA520; }
-        .brand-logo { width: 85px; height: 85px; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15)); }
-        .btn-primary-custom { background: #8B0000; border: none; color: white; padding: 12px; border-radius: 10px; font-weight: 600; width: 100%; transition: all 0.3s ease; }
-        .btn-primary-custom:hover { background: #A00000; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(139,0,0,0.3); }
-        .btn-toggle-role { background: none; border: 2px solid #8B0000; color: #8B0000; padding: 10px; border-radius: 10px; font-weight: 600; width: 100%; transition: all 0.3s ease; }
-        .btn-toggle-role:hover { background: #8B0000; color: white; }
+        body { background-color: #8B0000; font-family: 'Segoe UI', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .main-card { background: white; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); max-width: 500px; width: 100%; overflow: hidden; border: 4px solid #FFD700; }
+        .logo-clickable { cursor: pointer; transition: transform 0.3s ease; width: 100px; height: 100px; object-fit: cover; border: 3px solid #FFD700; }
+        .logo-clickable:hover { transform: scale(1.1) rotate(8deg); }
+        .btn-primary-custom { background-color: #8B0000; color: white; border: none; }
+        .btn-primary-custom:hover { background-color: #a00000; color: white; }
+        #adminLoginForm { display: none; }
+        .list-btn-submit { background: none; border: none; padding: 0; width: 100%; text-align: left; }
     </style>
 </head>
 <body>
-    <div class="login-card p-0 m-3">
-        <div class="brand-header">
-            <img src="assets/Logo_Tapak_Suci_Galunggung.jpeg" alt="Logo Tapak Suci" class="brand-logo mb-2">
-            <h5 class="fw-bold text-dark m-0" id="login-title">E-System SPP Tapak Suci Galunggung</h5>
-            <small class="text-muted d-block mt-1" id="login-subtitle">Tapak Suci Putera Muhammadiyah cab. Galunggung</small>
-        </div>
+
+    <div class="main-card p-4">
         
-        <div class="card-body p-4 pb-3">
+        <div class="text-center mb-4 border-bottom pb-3">
+            <img src="assets/Logo_Tapak_Suci_Galunggung.jpeg" id="eggLogo" alt="Logo Tapak Suci" class="rounded-circle logo-clickable mb-2 shadow">
+            <h4 class="fw-bold text-dark m-0">SPP TAPAK SUCI</h4>
+            <p class="text-muted small mb-0">Pusat Informasi & Cek Iuran Siswa - Cab. Galunggung</p>
+        </div>
+
+        <!-- PORTAL WALI MURID -->
+        <div id="waliPortal">
+            <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-search me-1"></i> Cek Status Pembayaran Siswa</h6>
+            <form method="POST" action="">
+                <input type="hidden" name="action" value="wali_search">
+                <div class="input-group mb-3">
+                    <input type="text" name="keyword" class="form-control" placeholder="Masukkan Nama Siswa / ID Urut..." value="<?= htmlspecialchars($search_keyword); ?>" required autocomplete="off">
+                    <button class="btn btn-warning fw-semibold px-3" type="submit"><i class="bi bi-search"></i> Cari</button>
+                </div>
+            </form>
+
+            <?php if ($has_searched): ?>
+                <div class="mt-3">
+                    <h6 class="text-muted small fw-bold text-uppercase mb-2">Hasil Pencarian:</h6>
+                    <?php if (!empty($search_results)): ?>
+                        <div class="list-group shadow-sm">
+                            <?php foreach ($search_results as $siswa): ?>
+                                <!-- Form POST untuk mengunci Session ID Siswa sebelum diarahkan ke detail -->
+                                <form method="POST" action="" class="m-0">
+                                    <input type="hidden" name="action" value="wali_access">
+                                    <input type="hidden" name="siswa_id" value="<?= $siswa['id']; ?>">
+                                    <button type="submit" class="list-btn-submit list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3">
+                                        <div>
+                                            <span class="badge bg-secondary me-2">ID #<?= $siswa['id']; ?></span>
+                                            <strong class="text-dark"><?= $siswa['nama']; ?></strong>
+                                        </div>
+                                        <span class="badge bg-success rounded-pill px-3 py-1">Lihat Rapor SPP <i class="bi bi-arrow-right ms-1"></i></span>
+                                    </button>
+                                </form>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-light border border-dashed text-center text-muted py-3" role="alert">
+                            <i class="bi bi-person-x-fill fs-4 d-block mb-1 text-danger"></i>
+                            Nama atau ID "<strong><?= htmlspecialchars($search_keyword); ?></strong>" tidak ditemukan.
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- LOGIN RAHASIA ADMIN (EASTER EGG) -->
+        <div id="adminLoginForm">
+            <div class="text-center mb-3">
+                <span class="badge bg-danger-subtle text-danger rounded-pill px-3 py-1 fw-bold mb-2"><i class="bi bi-shield-lock-fill me-1"></i> Mode Administrator</span>
+                <h5 class="fw-bold text-dark m-0">Masuk Sistem Utama</h5>
+            </div>
+
             <?php if (!empty($error_message)): ?>
-                <div class="alert alert-danger d-flex align-items-center" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    <div><?= $error_message; ?></div>
+                <div class="alert alert-danger border-0 small py-2 rounded-3 text-center mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> <?= $error_message; ?>
                 </div>
             <?php endif; ?>
 
-            <form action="" method="POST" id="mainLoginForm">
-                <input type="hidden" name="role" id="active_role" value="wali">
-                
-                <div id="siswa_id_field" class="mb-4">
-                    <label class="form-label fw-semibold text-secondary"><i class="bi bi-hash me-1"></i>Masukkan ID / No Urut Siswa</label>
-                    <input type="number" name="siswa_id" class="form-control form-control-lg bg-light border-0" placeholder="Contoh: 12" style="border-radius: 10px;" required>
-                    <div class="form-text text-muted mt-2" style="font-size: 12px;">Masukkan nomor urut anak didik sesuai daftar absen induk Tapak Suci.</div>
+            <form method="POST" action="">
+                <input type="hidden" name="action" value="admin_login">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary">Username Admin</label>
+                    <input type="text" name="username" class="form-control bg-light" placeholder="Username" required autocomplete="off">
                 </div>
-
-                <div id="admin_fields" style="display: none;">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold text-secondary"><i class="bi bi-person-fill me-1"></i>Username</label>
-                        <input type="text" name="username" id="username_field" class="form-control form-control-lg bg-light border-0" placeholder="Admin Username" style="border-radius: 10px;">
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold text-secondary"><i class="bi bi-lock-fill me-1"></i>Password</label>
-                        <input type="password" name="password" id="password_field" class="form-control form-control-lg bg-light border-0" placeholder="••••••••" style="border-radius: 10px;">
-                    </div>
+                <div class="mb-4">
+                    <label class="form-label small fw-semibold text-secondary">Password</label>
+                    <input type="password" name="password" class="form-control bg-light" placeholder="••••••••" required>
                 </div>
-
-                <button type="submit" class="btn btn-primary-custom mb-3 shadow-sm">MASUK KE SISTEM <i class="bi bi-arrow-right-short ms-1"></i></button>
-                <div class="text-center my-2 text-muted" style="font-size: 12px;">Atau login sebagai entitas berbeda</div>
-                <button type="button" onclick="toggleRoleMode()" class="btn btn-toggle-role mb-2 shadow-sm" id="btnToggleLabel"><i class="bi bi-shield-lock me-1"></i>LOGIN ADMINISTRATOR</button>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary-custom py-2 fw-semibold rounded-3 shadow-sm">Buka Akses Kontrol</button>
+                    <button type="button" id="btnCancelAdmin" class="btn btn-light btn-sm text-muted rounded-pill mt-1">Kembali ke Pencarian</button>
+                </div>
             </form>
         </div>
+
     </div>
 
     <script>
-        function toggleRoleMode() {
-            const activeRole = document.getElementById('active_role');
-            const containerWali = document.getElementById('siswa_id_field');
-            const containerAdmin = document.getElementById('admin_fields');
-            const btnToggle = document.getElementById('btnToggleLabel');
-            const title = document.getElementById('login-title');
-            const subtitle = document.getElementById('login-subtitle');
-            
-            const fieldSiswa = document.querySelector('input[name="siswa_id"]');
-            const fieldUser = document.getElementById('username_field');
-            const fieldPass = document.getElementById('password_field');
+        const eggLogo = document.getElementById('eggLogo');
+        const waliPortal = document.getElementById('waliPortal');
+        const adminLoginForm = document.getElementById('adminLoginForm');
+        const btnCancelAdmin = document.getElementById('btnCancelAdmin');
 
-            if (activeRole.value === 'wali') {
-                activeRole.value = 'admin';
-                containerWali.style.display = 'none';
-                containerAdmin.style.display = 'block';
-                btnToggle.innerHTML = '<i class="bi bi-people me-1"></i>LOGIN WALI MURID';
-                title.innerText = 'CONTROL PANEL';
-                subtitle.innerText = 'Administrator System Log';
-                
-                fieldSiswa.required = false;
-                fieldUser.required = true;
-                fieldPass.required = true;
-            } else {
-                activeRole.value = 'wali';
-                containerWali.style.display = 'block';
-                containerAdmin.style.display = 'none';
-                btnToggle.innerHTML = '<i class="bi bi-shield-lock me-1"></i>LOGIN ADMINISTRATOR';
-                title.innerText = 'E-System SPP Tapak Suci Galunggung';
-                subtitle.innerText = 'Tapak Suci Putera Muhammadiyah cab. Galunggung';
-                
-                fieldSiswa.required = true;
-                fieldUser.required = false;
-                fieldPass.required = false;
+        <?php if (!empty($error_message)): ?>
+            adminLoginForm.style.display = 'block';
+            waliPortal.style.display = 'none';
+        <?php endif; ?>
+
+        eggLogo.addEventListener('click', function() {
+            if (adminLoginForm.style.display === 'none' || adminLoginForm.style.display === '') {
+                adminLoginForm.style.display = 'block';
+                waliPortal.style.display = 'none';
             }
-        }
+        });
+
+        btnCancelAdmin.addEventListener('click', function() {
+            adminLoginForm.style.display = 'none';
+            waliPortal.style.display = 'block';
+        });
     </script>
 </body>
 </html>
