@@ -20,7 +20,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     if ($username === $admin_user && $password === $admin_pass) {
         // Set Cookie selama 1 hari (Stabil di Vercel)
-        setcookie('auth_role', 'admin', time() + 86400, '/');
+        setcookie('auth_role', 'admin', [
+            'expires' => time() + 86400,
+            'path' => '/',
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
         header("Location: index.php");
         exit();
     } else {
@@ -30,8 +36,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'wali_access') {
     $siswa_id = trim($_POST['siswa_id']);
-    setcookie('auth_role', 'wali', time() + 3600, '/');
-    setcookie('wali_id', $siswa_id, time() + 3600, '/');
+    setcookie('auth_role', 'wali', [
+        'expires' => time() + 3600,
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    setcookie('wali_id', $siswa_id, [
+        'expires' => time() + 3600,
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
     header("Location: detail.php?no_siswa=" . urlencode($siswa_id));
     exit();
 }

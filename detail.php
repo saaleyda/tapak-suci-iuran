@@ -1,4 +1,5 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 $auth_role = isset($_COOKIE['auth_role']) ? $_COOKIE['auth_role'] : '';
 $wali_id = isset($_COOKIE['wali_id']) ? $_COOKIE['wali_id'] : '';
 
@@ -37,7 +38,7 @@ if (!empty($siswa_raw)) {
 }
 
 if (!$siswa_ditemukan) {
-    header("Location: " . ($_SESSION['role'] === 'admin' ? 'index.php' : 'logout.php'));
+    header("Location: " . ($auth_role === 'admin' ? 'index.php' : 'logout.php'));
     exit();
 }
 
@@ -89,7 +90,7 @@ if (!empty($transaksi_raw)) {
                 <img src="assets/Logo_Tapak_Suci_Galunggung.jpeg" alt="Logo" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
                 KARTU SPP DIGITAL SISWA
             </span>
-            <?php if ($_SESSION['role'] === 'admin'): ?>
+            <?php if ($auth_role === 'admin'): ?>
                 <a href="index.php" class="btn btn-warning btn-sm fw-semibold rounded-pill px-3"><i class="bi bi-arrow-left me-1"></i> Dashboard Admin</a>
             <?php else: ?>
                 <a href="logout.php" class="btn btn-light btn-sm fw-semibold rounded-pill px-3 text-danger border-danger"><i class="bi bi-box-arrow-left me-1"></i> Kembali ke Login</a>
