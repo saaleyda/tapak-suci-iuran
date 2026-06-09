@@ -2,7 +2,12 @@
 // ==============================================================================
 // KONFIGURASI UTAMA KONEKSI GOOGLE SHEETS
 // ==============================================================================
-define('WEB_APP_URL', getenv('GOOGLE_SCRIPT_URL') ?: 'https://script.google.com/macros/s/AKfycbxx-ZEhbDgFvx8wqTPIkKHiD1CkMzPy98-Dhafw9zpPNfNgK2IeBZecp0ZW2obnBbU8KQ/exec');
+// Prioritas 1: Mencari di Environment Variable Vercel
+// Prioritas 2: Mencari di Environment Variable System
+// Prioritas 3: Manual URL (Nilai Default)
+$script_url = getenv('GOOGLE_SCRIPT_URL') ?: $_ENV['GOOGLE_SCRIPT_URL'] ?: 'https://script.google.com/macros/s/AKfycbxx-ZEhbDgFvx8wqTPIkKHiD1CkMzPy98-Dhafw9zpPNfNgK2IeBZecp0ZW2obnBbU8KQ/exec';
+
+define('WEB_APP_URL', $script_url);
 
 /**
  * Fungsi untuk membaca data dari sheet (DILENGKAPI PENGAMAN ANTI-CACHE)
