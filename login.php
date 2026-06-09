@@ -16,7 +16,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
 
-    if ($username === 'adminglg' && $password === 'galunggung2026') {
+    // Mengambil kredensial dari Environment Variables (Vercel)
+    $admin_user = getenv('ADMIN_USER') ?: 'adminglg';
+    $admin_pass = getenv('ADMIN_PASS') ?: 'galunggung2026';
+
+    if ($username === $admin_user && $password === $admin_pass) {
         $_SESSION['role'] = 'admin';
         if (isset($_SESSION['wali_siswa_id'])) {
             unset($_SESSION['wali_siswa_id']);

@@ -4,6 +4,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Memaksa PHP menggunakan Zona Waktu Indonesia Barat (WIB)
+date_default_timezone_set('Asia/Jakarta'); 
+
 // Proteksi Halaman Admin
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') { 
     header("Location: login.php"); 
@@ -113,7 +116,13 @@ if (!empty($siswa_raw)) {
 // Rekapitulasi Pembayaran Log
 $payment_matrix = []; 
 $total_kas_semua = 0; 
-$rekap_bulan_pilihan = ['total_uang' => 0, 'total_lunas' => 0];
+$rekap_bulan_pilihan = [
+    'total_uang' => 0, 
+    'total_lunas' => 0,
+    '40k' => 0,
+    '50k' => 0,
+    '60k' => 0
+];
 $akumulasi_nominal = ['40k' => 0, '50k' => 0, '60k' => 0];
 
 if (!empty($transaksi_raw)) {
@@ -132,6 +141,11 @@ if (!empty($transaksi_raw)) {
             if ($bln === $bulan_pilihan) {
                 $rekap_bulan_pilihan['total_uang'] += $nom;
                 $rekap_bulan_pilihan['total_lunas']++;
+                
+                // Tambahkan akumulasi spesifik per bulan pilihan
+                if ($nom === 40000) $rekap_bulan_pilihan['40k'] += $nom;
+                if ($nom === 50000) $rekap_bulan_pilihan['50k'] += $nom;
+                if ($nom === 60000) $rekap_bulan_pilihan['60k'] += $nom;
             }
             
             if ($nom === 40000) $akumulasi_nominal['40k'] += $nom;
@@ -204,9 +218,9 @@ if (!empty($transaksi_raw)) {
                         </form>
                     </div>
                     <div class="row g-2 mt-2 border-top pt-3">
-                        <div class="col-4 text-center"><small class="text-muted d-block" style="font-size:10px;">40K</small><span class="badge text-success bg-success-subtle rounded-pill px-2">Rp 0</span></div>
-                        <div class="col-4 text-center"><small class="text-muted d-block" style="font-size:10px;">50K</small><span class="badge text-primary bg-primary-subtle rounded-pill px-2">Rp 0</span></div>
-                        <div class="col-4 text-center"><small class="text-muted d-block" style="font-size:10px;">60K</small><span class="badge text-purple bg-purple-subtle rounded-pill px-2" style="color:#6f42c1; background:#efebf7">Rp 0</span></div>
+                        <div class="col-4 text-center"><small class="text-muted d-block" style="font-size:10px;">40K</small><span class="badge text-success bg-success-subtle rounded-pill px-2">Rp <?= number_format($rekap_bulan_pilihan['40k'], 0, ',', '.'); ?></span></div>
+                        <div class="col-4 text-center"><small class="text-muted d-block" style="font-size:10px;">50K</small><span class="badge text-primary bg-primary-subtle rounded-pill px-2">Rp <?= number_format($rekap_bulan_pilihan['50k'], 0, ',', '.'); ?></span></div>
+                        <div class="col-4 text-center"><small class="text-muted d-block" style="font-size:10px;">60K</small><span class="badge text-purple bg-purple-subtle rounded-pill px-2" style="color:#6f42c1; background:#efebf7">Rp <?= number_format($rekap_bulan_pilihan['60k'], 0, ',', '.'); ?></span></div>
                     </div>
                 </div>
             </div>

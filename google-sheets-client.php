@@ -2,7 +2,7 @@
 // ==============================================================================
 // KONFIGURASI UTAMA KONEKSI GOOGLE SHEETS
 // ==============================================================================
-define('WEB_APP_URL', 'https://script.google.com/macros/s/AKfycbxx-ZEhbDgFvx8wqTPIkKHiD1CkMzPy98-Dhafw9zpPNfNgK2IeBZecp0ZW2obnBbU8KQ/exec');
+define('WEB_APP_URL', getenv('GOOGLE_SCRIPT_URL') ?: 'https://script.google.com/macros/s/AKfycbxx-ZEhbDgFvx8wqTPIkKHiD1CkMzPy98-Dhafw9zpPNfNgK2IeBZecp0ZW2obnBbU8KQ/exec');
 
 /**
  * Fungsi untuk membaca data dari sheet (DILENGKAPI PENGAMAN ANTI-CACHE)
