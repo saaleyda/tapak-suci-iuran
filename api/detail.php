@@ -4,7 +4,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (!isset($_SESSION['role'])) {
-    header("Location: login.php");
+    session_write_close();
+    header("Location: /login.php");
     exit();
 }
 
@@ -12,7 +13,8 @@ $no_siswa = isset($_GET['no_siswa']) ? trim($_GET['no_siswa']) : '';
 
 if ($_SESSION['role'] === 'wali') {
     if ($no_siswa !== $_SESSION['wali_siswa_id']) {
-        header("Location: logout.php");
+        session_write_close();
+        header("Location: /logout.php");
         exit();
     }
 }

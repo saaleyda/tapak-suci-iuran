@@ -1,15 +1,20 @@
 <?php
-// 1. Inisialisasi Sesi di Baris Paling Atas (Cukup Satu Kali)
+// 1. Inisialisasi Sesi di Baris Paling Atas
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// Tambahkan pelaporan error sementara untuk melihat penyebab "Page isn't working"
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 // Memaksa PHP menggunakan Zona Waktu Indonesia Barat (WIB)
 date_default_timezone_set('Asia/Jakarta'); 
 
 // Proteksi Halaman Admin
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') { 
-    header("Location: login.php"); 
+    session_write_close();
+    header("Location: /login.php"); 
     exit(); 
 }
 
@@ -48,7 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             sheets_append('Master_siswa', [$no_urut, $nama_siswa]);
             $_SESSION['flash_message'] = "Siswa baru '$nama_siswa' berhasil ditambahkan ke sistem pusat!";
         }
-        header("Location: index.php?filter_bulan=" . urlencode($bulan_pilihan));
+        session_write_close();
+        header("Location: /index.php?filter_bulan=" . urlencode($bulan_pilihan));
         exit();
     }
     
@@ -62,7 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             sheets_append('Master_siswa', [$new_id, $new_nama], 'update', $old_id);
             $_SESSION['flash_message'] = "Biodata siswa berhasil diperbarui!";
         }
-        header("Location: index.php?filter_bulan=" . urlencode($bulan_pilihan));
+        session_write_close();
+        header("Location: /index.php?filter_bulan=" . urlencode($bulan_pilihan));
         exit();
     }
 
@@ -73,7 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             sheets_append('Master_siswa', [], 'delete', $id_hapus);
             $_SESSION['flash_message'] = "Siswa dengan ID #$id_hapus berhasil dihapus.";
         }
-        header("Location: index.php?filter_bulan=" . urlencode($bulan_pilihan));
+        session_write_close();
+        header("Location: /index.php?filter_bulan=" . urlencode($bulan_pilihan));
         exit();
     }
 
@@ -88,7 +96,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             sheets_append('Transaksi_luran', [$id_siswa, $bulan_bayar, $tahun_aktif, $nominal, $timestamp]);
             $_SESSION['flash_message'] = "Transaksi iuran siswa #$id_siswa bulan $bulan_bayar berhasil diproses!";
         }
-        header("Location: index.php?filter_bulan=" . urlencode($bulan_pilihan));
+        session_write_close();
+        header("Location: /index.php?filter_bulan=" . urlencode($bulan_pilihan));
         exit();
     }
 }

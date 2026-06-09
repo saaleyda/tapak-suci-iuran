@@ -4,7 +4,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
-    header("Location: index.php");
+    session_write_close();
+    header("Location: /index.php");
     exit();
 }
 
@@ -25,7 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if (isset($_SESSION['wali_siswa_id'])) {
             unset($_SESSION['wali_siswa_id']);
         }
-        header("Location: index.php");
+        session_write_close();
+        header("Location: /index.php");
         exit();
     } else {
         $error_message = 'Akses ditolak. Username atau Password salah!';
@@ -35,7 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'wali_access') {
     $_SESSION['role'] = 'wali';
     $_SESSION['wali_siswa_id'] = trim($_POST['siswa_id']);
-    header("Location: detail.php?no_siswa=" . urlencode($_POST['siswa_id']));
+    session_write_close();
+    header("Location: /detail.php?no_siswa=" . urlencode($_POST['siswa_id']));
     exit();
 }
 
