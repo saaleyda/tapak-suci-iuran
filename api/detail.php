@@ -1,24 +1,17 @@
 <?php
-// Pengaturan Sesi Khusus Vercel (Serverless)
-if (!isset($_SESSION)) {
-    if (file_exists('/tmp')) {
-        session_save_path('/tmp');
-    }
-    session_start();
-}
+$auth_role = isset($_COOKIE['auth_role']) ? $_COOKIE['auth_role'] : '';
+$wali_id = isset($_COOKIE['wali_id']) ? $_COOKIE['wali_id'] : '';
 
-if (!isset($_SESSION['role'])) {
-    session_write_close();
+if (empty($auth_role)) {
     header("Location: login.php");
     exit();
 }
 
 $no_siswa = isset($_GET['no_siswa']) ? trim($_GET['no_siswa']) : '';
 
-if ($_SESSION['role'] === 'wali') {
-    if ($no_siswa !== $_SESSION['wali_siswa_id']) {
-        session_write_close();
-        header("Location: /logout.php");
+if ($auth_role === 'wali') {
+    if ($no_siswa !== $wali_id) {
+        header("Location: logout.php");
         exit();
     }
 }

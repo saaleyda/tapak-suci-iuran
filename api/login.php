@@ -1,14 +1,8 @@
 <?php
-// Pengaturan Sesi Khusus Vercel (Serverless)
-if (!isset($_SESSION)) {
-    if (file_exists('/tmp')) {
-        session_save_path('/tmp');
-    }
-    session_start();
-}
+// Cek status login dari Cookie
+$auth_role = isset($_COOKIE['auth_role']) ? $_COOKIE['auth_role'] : '';
 
-if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
-    session_write_close();
+if ($auth_role === 'admin') {
     header("Location: index.php");
     exit();
 }
@@ -21,17 +15,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
 
-    // Mengambil kredensial dari Environment Variables (Vercel)
     $admin_user = getenv('ADMIN_USER') ?: 'adminglg';
     $admin_pass = getenv('ADMIN_PASS') ?: 'galunggung2026';
 
     if ($username === $admin_user && $password === $admin_pass) {
-        $_SESSION['role'] = 'admin';
-        if (isset($_SESSION['wali_siswa_id'])) {
-            unset($_SESSION['wali_siswa_id']);
-        }
-        session_write_close();
-        header("Location: /index.php");
+        // Set Cookie selama 1 hari (Stabil di Vercel)
+        setcookie('auth_role', 'admin', time() + 86400, '/');
+        header("Location: index.php");
         exit();
     } else {
         $error_message = 'Akses ditolak. Username atau Password salah!';
@@ -39,10 +29,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'wali_access') {
-    $_SESSION['role'] = 'wali';
-    $_SESSION['wali_siswa_id'] = trim($_POST['siswa_id']);
-    session_write_close();
-    header("Location: /detail.php?no_siswa=" . urlencode($_POST['siswa_id']));
+    $siswa_id = trim($_POST['siswa_id']);
+    setcookie('auth_role', 'wali', time() + 3600, '/');
+    setcookie('wali_id', $siswa_id, time() + 3600, '/');
+    header("Location: detail.php?no_siswa=" . urlencode($siswa_id));
     exit();
 }
 

@@ -1,21 +1,17 @@
 <?php
-// Pengaturan Sesi Khusus Vercel (Serverless)
-if (!isset($_SESSION)) {
-    if (file_exists('/tmp')) {
-        session_save_path('/tmp');
-    }
-    session_start();
-}
-
 // Memaksa PHP menggunakan Zona Waktu Indonesia Barat (WIB)
 date_default_timezone_set('Asia/Jakarta'); 
 
-// Proteksi Halaman Admin
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') { 
-    session_write_close();
+// Proteksi Halaman Admin menggunakan Cookie (Stabil di Vercel)
+$auth_role = isset($_COOKIE['auth_role']) ? $_COOKIE['auth_role'] : '';
+
+if ($auth_role !== 'admin') { 
     header("Location: login.php"); 
     exit(); 
 }
+
+// Inisialisasi Sesi hanya untuk flash message (opsional)
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 // Hubungkan ke API Google Sheets
 require_once __DIR__ . '/google-sheets-client.php';
