@@ -1,11 +1,15 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
+// Pengaturan Sesi Khusus Vercel (Serverless)
+if (!isset($_SESSION)) {
+    if (file_exists('/tmp')) {
+        session_save_path('/tmp');
+    }
     session_start();
 }
 
 if (!isset($_SESSION['role'])) {
     session_write_close();
-    header("Location: /login.php");
+    header("Location: login.php");
     exit();
 }
 

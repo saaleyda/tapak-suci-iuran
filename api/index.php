@@ -1,12 +1,11 @@
 <?php
-// 1. Inisialisasi Sesi di Baris Paling Atas
-if (session_status() === PHP_SESSION_NONE) {
+// Pengaturan Sesi Khusus Vercel (Serverless)
+if (!isset($_SESSION)) {
+    if (file_exists('/tmp')) {
+        session_save_path('/tmp');
+    }
     session_start();
 }
-
-// Tambahkan pelaporan error sementara untuk melihat penyebab "Page isn't working"
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
 // Memaksa PHP menggunakan Zona Waktu Indonesia Barat (WIB)
 date_default_timezone_set('Asia/Jakarta'); 
@@ -14,7 +13,7 @@ date_default_timezone_set('Asia/Jakarta');
 // Proteksi Halaman Admin
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') { 
     session_write_close();
-    header("Location: /login.php"); 
+    header("Location: login.php"); 
     exit(); 
 }
 
