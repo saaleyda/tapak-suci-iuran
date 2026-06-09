@@ -1,3 +1,11 @@
 .DS_Store
 Thumbs.db
 *.log
+.env
+.env.*
+node_modules/
+vendor/
+.vscode/
+.idea/
+.xampp/
+php_errors.log
